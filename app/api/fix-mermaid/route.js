@@ -1,3 +1,5 @@
+import { getMaxTokensForOptimize } from "@/lib/config-service";
+
 export async function POST(request) {
   try {
     const { mermaidCode, errorMessage, aiConfig, accessPassword, selectedModel } = await request.json();
@@ -109,6 +111,7 @@ export async function POST(request) {
               model: finalConfig.modelName,
               messages,
               stream: true, // 开启流式输出
+              max_tokens: getMaxTokensForOptimize(),
             }),
           });
 
@@ -126,7 +129,7 @@ export async function POST(request) {
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let mermaidCode = "";
-          let dataBuffer = ""; // JSON 数据缓冲区，用于处理跨块的不完整 JSON
+          let finishReason = null; // 记录完成原因
 
           while (true) {
             const { done, value } = await reader.read();
@@ -135,31 +138,21 @@ export async function POST(request) {
             // 解析返回的数据块
             const chunk = decoder.decode(value, { stream: true });
 
-            // 处理数据行
-            const lines = chunk.split('\n');
+            // 处理数据行（简化处理）
+            const lines = chunk.split('\n').filter(line => line.trim() !== '');
 
             for (const line of lines) {
-              const trimmedLine = line.trim();
-              
-              // 跳过空行
-              if (!trimmedLine) {
-                continue;
-              }
-              
-              if (trimmedLine.startsWith('data: ')) {
-                const data = trimmedLine.substring(6).trim();
-                
-                // 跳过空数据和结束标记
-                if (!data || data === '[DONE]') {
-                  dataBuffer = ""; // 清空缓冲区
-                  continue;
-                }
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') continue;
 
-                // 尝试解析 JSON，如果失败则累积到缓冲区
-                const jsonToParse = dataBuffer + data;
                 try {
-                  const parsed = JSON.parse(jsonToParse);
-                  dataBuffer = ""; // 解析成功，清空缓冲区
+                  const parsed = JSON.parse(data);
+                  
+                  // 提取 finish_reason
+                  if (parsed.choices[0]?.finish_reason) {
+                    finishReason = parsed.choices[0].finish_reason;
+                  }
                   
                   const content = parsed.choices[0]?.delta?.content || '';
                   if (content) {
@@ -171,15 +164,8 @@ export async function POST(request) {
                     })));
                   }
                 } catch (e) {
-                  // JSON 解析失败，可能是不完整的数据
-                  // 累积到缓冲区，等待下一个块
-                  dataBuffer = jsonToParse;
-                  
-                  // 如果缓冲区过大（超过10KB），说明可能出错，清空并记录
-                  if (dataBuffer.length > 10240) {
-                    console.error('Error parsing chunk (buffer overflow):', e.message);
-                    dataBuffer = "";
-                  }
+                  // 简单忽略解析失败的块
+                  console.error('Error parsing chunk:', e.message);
                 }
               }
             }
@@ -187,6 +173,17 @@ export async function POST(request) {
 
           // 提取代码块中的内容（如果有代码块标记）
           const fixedCode = parseAIResponse(mermaidCode, mermaidCode);
+
+          // 记录完成原因
+          console.log('Fix completed with finish_reason:', finishReason);
+          
+          // 检测是否因长度限制被截断并发送警告
+          if (finishReason === 'length') {
+            controller.enqueue(encoder.encode(JSON.stringify({
+              warning: '修复的内容可能因长度限制被截断，建议简化输入或调整配置',
+              done: false
+            })));
+          }
 
           // 发送完成信号
           controller.enqueue(encoder.encode(JSON.stringify({

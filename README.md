@@ -89,6 +89,19 @@ http://localhost:3000
 |--------|------|--------|
 | `NEXT_PUBLIC_DAILY_USAGE_LIMIT` | 每日使用限制 | `5` |
 | `NEXT_PUBLIC_MAX_CHARS` | 最大字符数 | `20000` |
+| `AI_MAX_TOKENS` | AI 生成最大 Token 数（所有场景默认值） | `8192` |
+| `AI_MAX_TOKENS_GENERATE` | 生成图表场景专用 Token 限制 | `8192` |
+| `AI_MAX_TOKENS_OPTIMIZE` | 优化图表场景专用 Token 限制 | `8192` |
+| `AI_MAX_TOKENS_SUGGESTIONS` | 生成建议场景专用 Token 限制 | `4096` |
+
+#### Max Tokens 配置说明
+
+Max Tokens 用于控制 AI 生成内容的最大长度，防止图表被截断。
+
+- **推荐值**: 生成和优化场景使用 `8192`，建议场景使用 `4096`
+- **调整建议**: 如果仍然出现截断，可以适当增加（如 `16384`），但会增加 API 调用成本
+- **配置优先级**: 场景专用配置 > 默认配置 (`AI_MAX_TOKENS`)
+- **重要提示**: 已优化流式处理逻辑和 Prompt，使用引号语法提高生成质量
 
 更多配置说明请查看 [env.template](./env.template)
 

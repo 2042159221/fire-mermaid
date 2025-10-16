@@ -172,7 +172,7 @@ export function MermaidEditor({ code, onChange, streamingContent, isStreaming, e
       const handleOptChunk = (chunk) => {
         if (onStreamChunk) onStreamChunk(chunk);
       };
-      const { optimizedCode, error } = await optimizeMermaidCode(code, instructionText || "", handleOptChunk);
+      const { optimizedCode, error, warnings } = await optimizeMermaidCode(code, instructionText || "", handleOptChunk);
       if (error) {
         toast.error(error);
         return;
@@ -182,6 +182,12 @@ export function MermaidEditor({ code, onChange, streamingContent, isStreaming, e
         return;
       }
       onChange(optimizedCode);
+      
+      // 显示警告（如果有）
+      if (warnings && warnings.length > 0) {
+        warnings.forEach(warning => toast.warning(warning));
+      }
+      
       toast.success("优化完成");
     } catch (e) {
       toast.error("优化失败，请稍后重试");

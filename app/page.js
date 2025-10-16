@@ -272,7 +272,7 @@ export default function Home() {
     setStreamingContent("");
 
     try {
-      const { mermaidCode: generatedCode, error } = await generateMermaidFromText(
+      const { mermaidCode: generatedCode, error, warnings } = await generateMermaidFromText(
         inputText,
         diagramType,
         showRealtime ? handleStreamChunk : null
@@ -300,6 +300,12 @@ export default function Home() {
         addHistoryEntry({ inputText, mermaidCode: generatedCode, diagramType });
         setHistoryEntries(getHistory());
       } catch {}
+      
+      // 显示警告（如果有）
+      if (warnings && warnings.length > 0) {
+        warnings.forEach(warning => toast.warning(warning));
+      }
+      
       toast.success("图表生成成功");
     } catch (error) {
       console.error("Generation error:", error);

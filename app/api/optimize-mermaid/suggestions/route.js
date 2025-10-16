@@ -1,3 +1,5 @@
+import { getMaxTokensForSuggestions } from "@/lib/config-service";
+
 export async function POST(request) {
   try {
     const { mermaidCode, aiConfig, accessPassword, selectedModel } = await request.json();
@@ -49,7 +51,11 @@ export async function POST(request) {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${finalConfig.apiKey}` },
-      body: JSON.stringify({ model: finalConfig.modelName, messages })
+      body: JSON.stringify({ 
+        model: finalConfig.modelName, 
+        messages,
+        max_tokens: getMaxTokensForSuggestions()
+      })
     });
 
     if (!response.ok) {
