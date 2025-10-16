@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  fire-mermaid:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    # 方式1: 从 .env 文件读取环境变量（推荐）
+    env_file:
+      - .env
+    # 方式2: 直接在此处配置环境变量（不推荐，会暴露敏感信息）
+    # environment:
+    #   - NODE_ENV=production
+    #   - ACCESS_PASSWORD=${ACCESS_PASSWORD}
+    #   - AI_API_URL=${AI_API_URL}
+    #   - AI_API_KEY=${AI_API_KEY}
+    #   - AI_MODEL_NAME=${AI_MODEL_NAME}
+    #   - NEXT_PUBLIC_AI_API_URL=${NEXT_PUBLIC_AI_API_URL}
+    #   - NEXT_PUBLIC_AI_API_KEY=${NEXT_PUBLIC_AI_API_KEY}
+    #   - NEXT_PUBLIC_AI_MODEL_NAME=${NEXT_PUBLIC_AI_MODEL_NAME}
+    #   - NEXT_PUBLIC_DAILY_USAGE_LIMIT=5
+    #   - NEXT_PUBLIC_MAX_CHARS=20000
+    restart: unless-stopped
+    container_name: fire-mermaid-app
+    
+  # 可选：添加 nginx 反向代理
+  # nginx:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - fire-mermaid
+  #   restart: unless-stopped
+  #   container_name: fire-mermaid-nginx
