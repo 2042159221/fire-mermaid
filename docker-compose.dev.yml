@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  fire-mermaid-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    # 挂载本地代码，实现热重载
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    # 启用开发模式
+    command: npm run dev
+    restart: unless-stopped
+    container_name: fire-mermaid-dev
+    # 启用文件监控（Docker Compose Watch 功能）
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app/app
+        - action: sync
+          path: ./components
+          target: /app/components
+        - action: sync
+          path: ./lib
+          target: /app/lib
+        - action: sync
+          path: ./public
+          target: /app/public
+        - action: rebuild
+          path: package.json
+

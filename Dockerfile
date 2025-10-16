@@ -9,7 +9,9 @@ WORKDIR /app
 
 # 安装依赖基于你的首选包管理器
 COPY package.json package-lock.json* ./
-RUN \
+
+# 使用 BuildKit 缓存挂载来加速依赖安装
+RUN --mount=type=cache,target=/root/.npm \
   if [ -f package-lock.json ]; then npm ci; \
   else echo "Lockfile not found." && exit 1; \
   fi

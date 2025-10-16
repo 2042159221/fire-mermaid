@@ -5,6 +5,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # 启用 BuildKit 缓存（需要 DOCKER_BUILDKIT=1 环境变量）
+      cache_from:
+        - fire-mermaid:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: fire-mermaid:latest
     ports:
       - "3000:3000"
     # 方式1: 从 .env 文件读取环境变量（推荐）

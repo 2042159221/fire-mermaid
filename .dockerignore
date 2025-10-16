@@ -1,15 +1,60 @@
+# Docker 相关
 Dockerfile
+Dockerfile.dev
 .dockerignore
+docker-compose.yml
+docker-compose.dev.yml
+docker-deploy.sh
+docker-deploy.bat
+
+# Node.js
 node_modules
 npm-debug.log
+yarn-error.log
+.pnpm-debug.log
 README.md
+# 环境变量和配置
 .env
 .env.local
+.env.development.local
+.env.test.local
 .env.production.local
+
+# Git
 .git
 .gitignore
+.gitattributes
+
+# Next.js
 .next
+out
+
+# 部署平台
 .vercel
-*.md
+
+# 文档（保留 DOCKER-GUIDE.md 外的其他文档）
+README.md
+LICENSE
+CHANGELOG.md
+
+# 系统文件
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode
+.idea
+*.sublime*
+
+# 测试
+coverage
+.nyc_output
+*.log
+
+# 临时文件
+tmp
+temp
+*.tmp
