@@ -101,6 +101,7 @@ export async function POST(request) {
           let finalCollected = "";
           let rawAll = "";
           let finishReason = null; // 记录完成原因
+          let lineBuffer = ""; // SSE 行缓冲区，处理跨 chunk 的行
 
           const processIncoming = (text) => {
             const out = [];
@@ -144,10 +145,19 @@ export async function POST(request) {
             if (done) break;
             const chunk = decoder.decode(value, { stream: true });
 
-            const lines = chunk.split('\n').filter(line => line.trim() !== '');
+            // 将新的 chunk 添加到行缓冲区
+            lineBuffer += chunk;
+
+            // 按换行符分割，但保留最后一个不完整的行
+            const lines = lineBuffer.split('\n');
+            lineBuffer = lines.pop() || "";
+
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
+              const trimmedLine = line.trim();
+              if (!trimmedLine) continue;
+              
+              if (trimmedLine.startsWith('data: ')) {
+                const data = trimmedLine.substring(6);
                 if (data === '[DONE]') continue;
                 
                 try {
@@ -170,8 +180,39 @@ export async function POST(request) {
                     }
                   }
                 } catch (e) {
-                  // 简单忽略解析失败的块
-                  console.error('Error parsing optimize chunk:', e.message);
+                  // 只在非空数据时记录错误（避免误报）
+                  if (data && data.length > 0) {
+                    console.error('Error parsing optimize chunk:', e.message, 'Data:', data.substring(0, 100));
+                  }
+                }
+              }
+            }
+          }
+
+          // 处理最后可能遗留的不完整行
+          if (lineBuffer.trim()) {
+            const trimmedLine = lineBuffer.trim();
+            if (trimmedLine.startsWith('data: ')) {
+              const data = trimmedLine.substring(6);
+              if (data !== '[DONE]') {
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.choices[0]?.finish_reason) {
+                    finishReason = parsed.choices[0].finish_reason;
+                  }
+                  const content = parsed.choices[0]?.delta?.content || '';
+                  if (content) {
+                    rawAll += content;
+                    const increments = processIncoming(content);
+                    if (increments.length > 0) {
+                      for (const inc of increments) {
+                        finalCollected += inc;
+                        sendEvent({ type: 'chunk', data: inc });
+                      }
+                    }
+                  }
+                } catch (e) {
+                  // 静默处理最后一行的解析错误
                 }
               }
             }
